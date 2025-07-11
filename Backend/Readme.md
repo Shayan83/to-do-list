@@ -1,28 +1,6 @@
 
 ## 📘 To-Do List Backend (FastAPI + SQLModel)
 
-This is a simple backend for managing users, teams, to-do lists, and tasks using **FastAPI** and **SQLModel**. It supports organizing multiple lists per user/team and provides a RESTful API for integration with a frontend.
-
----
-
-## 🚀 Features
-
-* RESTful API (FastAPI)
-* SQLite database (easy to start with)
-* Models: Users, Teams, Lists, Tasks
-* Endpoints for creating and retrieving all data
-* Swagger UI for testing
-* Easily expandable (JWT auth, PostgreSQL, etc.)
-
----
-
-## 🔧 Requirements
-
-* Python 3.8+
-* pip
-
----
-
 ## 📦 Installation
 
 ```bash
