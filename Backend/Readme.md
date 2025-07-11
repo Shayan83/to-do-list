@@ -112,16 +112,3 @@ todo_backend/
 │   ├── lists.py
 │   └── tasks.py
 ```
-
----
-
-## 🛠️ Next Steps (Optional)
-
-* Add authentication with OAuth2 / JWT
-* Switch from SQLite to PostgreSQL
-* Connect a React frontend
-* Add filtering (e.g., `/lists?team_id=1`)
-
----
-
-Let me know if you want a Markdown download or if you'd like this zipped with your project!
