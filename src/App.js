@@ -67,7 +67,7 @@ function App() {
     try {
       const newTask = {
         title: newTaskTitle,
-        description: "",
+        description: newTaskDescription,
         done: false,
         list_id: selectedList.id,
       };
@@ -142,6 +142,14 @@ function App() {
             >
               {task.title}
             </span>
+
+            <span               
+            style={{
+                marginLeft: 8, color: "red"
+              }}>
+              {task.description}
+            </span>
+
           </li>
         ))}
       </ul>
