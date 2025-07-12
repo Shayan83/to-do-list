@@ -9,6 +9,7 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [newListTitle, setNewListTitle] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
 
   useEffect(() => {
     fetchLists();
@@ -44,10 +45,10 @@ function App() {
     fetchTasks(list.id);
   };
 
-  const handleAddList = async () => {
+  const handleAddList = async () => { // Posts a new task (for the selected list) to the backend.
     if (!newListTitle.trim()) return;
     try {
-      const newList = {
+      const newList = { // todo: for user (database schema)
         title: newListTitle,
         team_id: null,
         owner_id: null,
@@ -97,7 +98,7 @@ function App() {
       <div style={{ marginBottom: 20 }}>
         <input
           type="text"
-          placeholder="New list title"
+          placeholder="New list title "
           value={newListTitle}
           onChange={(e) => setNewListTitle(e.target.value)}
         />
@@ -152,6 +153,12 @@ function App() {
             placeholder="New task title"
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="description"
+            value={newTaskDescription}
+            onChange={(e) => setNewTaskDescription(e.target.value)}
           />
           <button onClick={handleAddTask}>Add Task</button>
         </div>
