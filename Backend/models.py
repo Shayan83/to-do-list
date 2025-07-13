@@ -11,6 +11,8 @@ class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     email: str
+    password_hash: str
+    role: str = Field(default="user")  # 'user' or 'admin'
     team_id: Optional[int] = Field(default=None, foreign_key="team.id")
     team: Optional[Team] = Relationship(back_populates="members")
     lists: List["TodoList"] = Relationship(back_populates="owner")
