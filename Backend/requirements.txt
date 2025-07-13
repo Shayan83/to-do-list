@@ -2,3 +2,7 @@ fastapi
 uvicorn
 sqlmodel
 python-dotenv
+passlib
+python-jose
+bcrypt
+python-multipart
