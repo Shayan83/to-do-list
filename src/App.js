@@ -67,11 +67,11 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>To-Do List Application</h1>
-        <nav className="nav-tabs">
+        <nav className="nav-tabs" style={{ alignItems: "center" }}>
           <button
             className={`nav-tab ${activeTab === "todo" ? "active" : ""}`}
             onClick={() => setActiveTab("todo")}
+            style={{ marginLeft: "20px" }}
           >
             📝 To-Do Lists
           </button>
@@ -83,17 +83,19 @@ function App() {
               👥 Admin Page
             </button>
           )}
-          <button
-            className="nav-tab"
-            style={{ marginLeft: "auto", background: "#dc3545", color: "white" }}
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
+          <div style={{ display: "flex", alignItems: "center", marginLeft: "auto", gap: 16 }}>
+            <span style={{ fontSize: 14, color: "#555" }}>
+              Logged in as: <b>{auth.user.name}</b> ({auth.user.role})
+            </span>
+            <button
+              className="nav-tab"
+              style={{ background: "#dc3545", color: "white", marginRight: "20px" }}
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
         </nav>
-        <div style={{ textAlign: "right", fontSize: 14, color: "#555", marginTop: 10 }}>
-          Logged in as: <b>{auth.user.name}</b> ({auth.user.role})
-        </div>
       </header>
 
       <main className="App-main">
