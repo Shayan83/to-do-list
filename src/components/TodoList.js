@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { MdDeleteForever } from "react-icons/md";
 import axios from "axios";
 
 const API_URL = "http://127.0.0.1:8000";
@@ -15,6 +16,7 @@ const TodoList = () => {
   const [newListTitle, setNewListTitle] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
+  const [modalTaskId, setModalTaskId] = useState(null);
 
   useEffect(() => {
     fetchLists();
@@ -96,8 +98,30 @@ const TodoList = () => {
     }
   };
 
-  const toggleTaskDone = async (task) => {
+  const handleDeleteTask = async (taskID) => {
+    setModalTaskId(taskID);
+  };
+
+  const confirmDeleteTask = async () => {
     try {
+      await axios.delete(`${API_URL}/tasks/${modalTaskId}`, {
+        headers: getAuthHeaders(),
+      });
+      setTasks(tasks.filter((t) => t.id !== modalTaskId));
+      setModalTaskId(null);
+    } catch (err) {
+      alert("Error deleting task");
+      console.error(err);
+      setModalTaskId(null);
+    }
+  };
+
+  const cancelDeleteTask = () => {
+    setModalTaskId(null);
+  };
+
+  const toggleTaskDone = async (task) => {
+    try {  
       const updated = { ...task, done: !task.done };
       const res = await axios.put(`${API_URL}/tasks/${task.id}`, updated, {
         headers: getAuthHeaders(),
@@ -110,7 +134,7 @@ const TodoList = () => {
   };
 
   return (
-    <div className="card">
+    <div className="card" style={{ position: 'relative' }}>
       <h1>To-Do Lists</h1>
 
       <div style={{ marginBottom: 20 }}>
@@ -168,8 +192,9 @@ const TodoList = () => {
               <span
                 style={{
                   textDecoration: task.done ? "line-through" : "none",
-                  flex: 1,
-                  fontWeight: "bold"
+                  flex: 0,
+                  fontWeight: "bold",
+                  marginLeft: 10,
                 }}
               >
                 {task.title}
@@ -184,6 +209,13 @@ const TodoList = () => {
                   {task.description}
                 </span>
               )}
+              <button 
+              onClick={() => handleDeleteTask(task.id)}
+              className="delete-button"
+              style={{ background: "#dc3545", color: "white", marginLeft: "auto" }}>
+                <MdDeleteForever />
+              </button>
+
             </li>
           ))}
         </ul>
@@ -218,6 +250,19 @@ const TodoList = () => {
             <button onClick={handleAddTask} className="button-primary">Add Task</button>
           </div>
         </div>
+      )}
+      {modalTaskId !== null && (
+        <>
+          <div className="modal-overlay" />
+          <div className="modal-box">
+            <h3>Confirm Delete</h3>
+            <p>Are you sure you want to delete this task?</p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button className="button-secondary" onClick={cancelDeleteTask}>Cancel</button>
+              <button className="button-primary" style={{ background: '#dc3545' }} onClick={confirmDeleteTask}>Delete</button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
