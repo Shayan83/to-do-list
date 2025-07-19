@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { MdDeleteForever } from "react-icons/md";
+import { MdDeleteForever, MdEdit } from "react-icons/md";
 import axios from "axios";
+
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -16,7 +17,8 @@ const TodoList = () => {
   const [newListTitle, setNewListTitle] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
-  const [modalTaskId, setModalTaskId] = useState(null);
+  const [deleteTaskID, setdeleteTaskID] = useState(null);
+  const [editTaskID, setEditTaskID] = useState(null);
 
   useEffect(() => {
     fetchLists();
@@ -99,29 +101,33 @@ const TodoList = () => {
   };
 
   const handleDeleteTask = async (taskID) => {
-    setModalTaskId(taskID);
+    setdeleteTaskID(taskID);
+  };
+
+  const handleEditTask = async (taskID) => {
+
   };
 
   const confirmDeleteTask = async () => {
     try {
-      await axios.delete(`${API_URL}/tasks/${modalTaskId}`, {
+      await axios.delete(`${API_URL}/tasks/${deleteTaskID}`, {
         headers: getAuthHeaders(),
       });
-      setTasks(tasks.filter((t) => t.id !== modalTaskId));
-      setModalTaskId(null);
+      setTasks(tasks.filter((t) => t.id !== deleteTaskID));
+      setdeleteTaskID(null);
     } catch (err) {
       alert("Error deleting task");
       console.error(err);
-      setModalTaskId(null);
+      setdeleteTaskID(null);
     }
   };
 
   const cancelDeleteTask = () => {
-    setModalTaskId(null);
+    setdeleteTaskID(null);
   };
 
   const toggleTaskDone = async (task) => {
-    try {  
+    try {
       const updated = { ...task, done: !task.done };
       const res = await axios.put(`${API_URL}/tasks/${task.id}`, updated, {
         headers: getAuthHeaders(),
@@ -175,10 +181,10 @@ const TodoList = () => {
 
         <ul style={{ listStyle: "none", padding: 0 }}>
           {tasks.map((task) => (
-            <li key={task.id} style={{ 
-              marginBottom: 10, 
-              padding: "10px", 
-              backgroundColor: "#f8f9fa", 
+            <li key={task.id} style={{
+              marginBottom: 10,
+              padding: "10px",
+              backgroundColor: "#f8f9fa",
               borderRadius: 5,
               display: "flex",
               alignItems: "center"
@@ -202,20 +208,26 @@ const TodoList = () => {
 
               {task.description && (
                 <span style={{
-                  marginLeft: 8, 
+                  marginLeft: 8,
                   color: "#666",
                   fontSize: "0.9em"
                 }}>
                   {task.description}
                 </span>
               )}
-              <button 
-              onClick={() => handleDeleteTask(task.id)}
-              className="delete-button"
-              style={{ background: "#dc3545", color: "white", marginLeft: "auto" }}>
-                <MdDeleteForever />
+              <button
+                onClick={() => handleDeleteTask(task.id)}
+                className="delete-button"
+                style={{ background: "#FCD12A", color: "white", marginLeft: "auto" }}>
+                <MdEdit />
               </button>
 
+              <button
+                onClick={() => handleDeleteTask(task.id)}
+                className="delete-button"
+                style={{ background: "#dc3545", color: "white", marginLeft: "5px" }}>
+                <MdDeleteForever />
+              </button>
             </li>
           ))}
         </ul>
@@ -251,7 +263,44 @@ const TodoList = () => {
           </div>
         </div>
       )}
-      {modalTaskId !== null && (
+      {editTaskID !== null && (
+        <>
+          <div className="modal-overlay" />
+          <div className="modal-box">
+            {selectedList && (
+              <div className="card" style={{ marginTop: 20 }}>
+                <h3>Add New Task</h3>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  <input
+                    type="text"
+                    placeholder="New task title"
+                    value={newTaskTitle}
+                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    className="input-field"
+                    style={{ flex: 1, minWidth: "200px" }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Description (optional)"
+                    value={newTaskDescription}
+                    onChange={(e) => setNewTaskDescription(e.target.value)}
+                    className="input-field"
+                    style={{ flex: 1, minWidth: "200px" }}
+                  />
+                  <button onClick={handleAddTask} className="button-primary">Add Task</button>
+                </div>
+              </div>
+            )}
+            <p> please edit your task </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button className="button-secondary" onClick={cancelDeleteTask}>Cancel</button>
+              <button className="button-primary" style={{ background: '#dc3545' }} onClick={confirmDeleteTask}>Delete</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {deleteTaskID !== null && (
         <>
           <div className="modal-overlay" />
           <div className="modal-box">
@@ -264,6 +313,7 @@ const TodoList = () => {
           </div>
         </>
       )}
+
     </div>
   );
 };
