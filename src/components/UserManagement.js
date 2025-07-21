@@ -1,291 +1,239 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react'
+import axios from 'axios'
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = 'http://127.0.0.1:8000'
 
-const UserManagement = ({ token }) => {
-  const [users, setUsers] = useState([]);
-  const [editingUser, setEditingUser] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'user',
-    team_id: ''
-  });
-  const [error, setError] = useState("");
+function getAuthHeaders() {
+  const token = localStorage.getItem('token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+const UserManagement = () => {
+  const [user, setUser] = useState(null)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [pendingInvites, setPendingInvites] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (token) fetchUsers();
-  }, [token]);
+    fetchUserData()
+    fetchPendingInvites()
+  }, [])
 
-  const fetchUsers = async () => {
+  const fetchUserData = async () => {
     try {
-      const response = await axios.get(`${API_URL}/users/admin`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setUsers(response.data);
-    } catch (error) {
-      setError('Error fetching users: ' + (error.response?.data?.detail || ''));
+      const res = await axios.get(`${API_URL}/users/me`, {
+        headers: getAuthHeaders(),
+      })
+      setUser(res.data)
+      localStorage.setItem('user', JSON.stringify(res.data))
+    } catch (err) {
+      console.error('Error fetching user data:', err)
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      email: '',
-      password: '',
-      role: 'user',
-      team_id: ''
-    });
-    setEditingUser(null);
-    setShowForm(false);
-    setError("");
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.name.trim() || !formData.email.trim() || (!editingUser && !formData.password.trim())) {
-      setError('Name, email, and password are required');
-      return;
-    }
+  const fetchPendingInvites = async () => {
     try {
-      const userData = {
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        password: formData.password.trim() || undefined,
-        role: formData.role,
-        team_id: formData.team_id ? parseInt(formData.team_id) : null
-      };
-      if (editingUser) {
-        await axios.put(`${API_URL}/users/${editingUser.id}`, userData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      } else {
-        await axios.post(`${API_URL}/users/`, userData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      }
-      resetForm();
-      fetchUsers();
-    } catch (error) {
-      setError(error.response?.data?.detail || 'Error saving user');
+      const res = await axios.get(`${API_URL}/teams/invites/pending`, {
+        headers: getAuthHeaders(),
+      })
+      setPendingInvites(res.data)
+    } catch (err) {
+      console.error('Error fetching pending invites:', err)
     }
-  };
+  }
 
-  const handleEdit = (user) => {
-    setEditingUser(user);
-    setFormData({
-      name: user.name,
-      email: user.email,
-      password: '',
-      role: user.role,
-      team_id: user.team_id ? user.team_id.toString() : ''
-    });
-    setShowForm(true);
-    setError("");
-  };
-
-  const handleDelete = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) {
-      return;
+  const handleSendInvite = async () => {
+    if (!inviteEmail.trim() || !user?.team_id) {
+      alert(
+        'Please enter an email address and make sure you are part of a team',
+      )
+      return
     }
+
     try {
-      await axios.delete(`${API_URL}/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      fetchUsers();
-    } catch (error) {
-      setError('Error deleting user: ' + (error.response?.data?.detail || ''));
+      await axios.post(
+        `${API_URL}/teams/invite/`,
+        {
+          email: inviteEmail,
+          team_id: user.team_id,
+        },
+        {
+          headers: getAuthHeaders(),
+        },
+      )
+      alert('Invitation sent successfully!')
+      setInviteEmail('')
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error sending invitation')
+      console.error(err)
     }
-  };
+  }
 
-  if (!token) {
-    return <div className="card" style={{ margin: 40, color: 'red' }}>You must be logged in as admin to view this page.</div>;
+  const handleAcceptInvite = async (inviteId) => {
+    try {
+      await axios.post(
+        `${API_URL}/teams/invites/${inviteId}/accept`,
+        {},
+        {
+          headers: getAuthHeaders(),
+        },
+      )
+      alert('Invitation accepted! You are now part of the team.')
+      fetchUserData() // Refresh user data to get updated team_id
+      fetchPendingInvites() // Refresh pending invites
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error accepting invitation')
+      console.error(err)
+    }
+  }
+
+  const handleDeclineInvite = async (inviteId) => {
+    try {
+      await axios.post(
+        `${API_URL}/teams/invites/${inviteId}/decline`,
+        {},
+        {
+          headers: getAuthHeaders(),
+        },
+      )
+      alert('Invitation declined.')
+      fetchPendingInvites() // Refresh pending invites
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error declining invitation')
+      console.error(err)
+    }
+  }
+
+  if (loading) {
+    return <div className="card">Loading...</div>
   }
 
   return (
     <div className="card">
-      <h2>User Management (Admin Only)</h2>
-      {error && <div style={{ color: 'red', marginBottom: 10 }}>{error}</div>}
-      <div style={{ marginBottom: 20 }}>
-        <button 
-          onClick={() => setShowForm(!showForm)}
-          className="button-primary"
-        >
-          {showForm ? 'Cancel' : 'Add New User'}
-        </button>
-      </div>
-      {showForm && (
-        <div className="card" style={{ marginBottom: 20 }}>
-          <h3>{editingUser ? 'Edit User' : 'Add New User'}</h3>
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: 15 }}>
-              <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
-                Name: *
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  required
-                />
-              </label>
-            </div>
-            <div style={{ marginBottom: 15 }}>
-              <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
-                Email: *
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  required
-                />
-              </label>
-            </div>
-            <div style={{ marginBottom: 15 }}>
-              <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
-                Password: {editingUser ? '(leave blank to keep unchanged)' : '*'}
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  required={!editingUser}
-                />
-              </label>
-            </div>
-            <div style={{ marginBottom: 15 }}>
-              <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
-                Role:
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleInputChange}
-                  className="input-field"
-                >
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </label>
-            </div>
-            <div style={{ marginBottom: 15 }}>
-              <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
-                Team ID (optional):
-                <input
-                  type="number"
-                  name="team_id"
-                  value={formData.team_id}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </label>
-            </div>
-            <div>
-              <button
-                type="submit"
-                className="button-primary"
-                style={{ marginRight: 10 }}
-              >
-                {editingUser ? 'Update User' : 'Create User'}
-              </button>
-              {editingUser && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="button-secondary"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
+      <h1>User Management</h1>
+
+      {user && (
+        <div style={{ marginBottom: 30 }}>
+          <h2>Your Profile</h2>
+          <p>
+            <strong>Name:</strong> {user.name}
+          </p>
+          <p>
+            <strong>Email:</strong> {user.email}
+          </p>
+          <p>
+            <strong>Role:</strong> {user.role}
+          </p>
+          <p>
+            <strong>Team ID:</strong> {user.team_id || 'No team'}
+          </p>
         </div>
       )}
-      <div className="card">
-        <h3>Users ({users.length})</h3>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            border: '1px solid #ddd',
-            backgroundColor: 'white'
-          }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f8f9fa' }}>
-                <th style={{ padding: 12, border: '1px solid #ddd', textAlign: 'left' }}>ID</th>
-                <th style={{ padding: 12, border: '1px solid #ddd', textAlign: 'left' }}>Name</th>
-                <th style={{ padding: 12, border: '1px solid #ddd', textAlign: 'left' }}>Email</th>
-                <th style={{ padding: 12, border: '1px solid #ddd', textAlign: 'left' }}>Role</th>
-                <th style={{ padding: 12, border: '1px solid #ddd', textAlign: 'left' }}>Team ID</th>
-                <th style={{ padding: 12, border: '1px solid #ddd', textAlign: 'left' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(user => (
-                <tr key={user.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: 12, border: '1px solid #ddd' }}>{user.id}</td>
-                  <td style={{ padding: 12, border: '1px solid #ddd' }}>{user.name}</td>
-                  <td style={{ padding: 12, border: '1px solid #ddd' }}>{user.email}</td>
-                  <td style={{ padding: 12, border: '1px solid #ddd' }}>{user.role}</td>
-                  <td style={{ padding: 12, border: '1px solid #ddd' }}>{user.team_id || '-'}</td>
-                  <td style={{ padding: 12, border: '1px solid #ddd' }}>
-                    <button
-                      onClick={() => handleEdit(user)}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#ffc107',
-                        color: 'black',
-                        border: 'none',
-                        borderRadius: 3,
-                        cursor: 'pointer',
-                        marginRight: 5,
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(user.id)}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 3,
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {users.length === 0 && (
-          <p style={{ textAlign: 'center', color: '#666', fontStyle: 'italic', padding: '20px' }}>
-            No users found. Create your first user above!
+
+      {/* Send Invites Section */}
+      {user?.team_id && (
+        <div className="card" style={{ marginBottom: 30 }}>
+          <h2>Invite Users to Your Team</h2>
+          <p style={{ color: '#666', marginBottom: 15 }}>
+            Invite others to collaborate on your team's to-do lists
           </p>
+          <div
+            style={{
+              display: 'flex',
+              gap: 10,
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
+            <input
+              type="email"
+              placeholder="Enter email address"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="input-field"
+              style={{ flex: 1, minWidth: '250px' }}
+            />
+            <button onClick={handleSendInvite} className="button-primary">
+              Send Invite
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Pending Invites Section */}
+      <div className="card">
+        <h2>Pending Invitations</h2>
+        {pendingInvites.length === 0 ? (
+          <p style={{ color: '#666', fontStyle: 'italic' }}>
+            No pending invitations
+          </p>
+        ) : (
+          <div>
+            {pendingInvites.map((invite) => (
+              <div
+                key={invite.id}
+                style={{
+                  border: '1px solid #ddd',
+                  borderRadius: 8,
+                  padding: 15,
+                  marginBottom: 10,
+                  backgroundColor: '#f9f9f9',
+                }}
+              >
+                <div style={{ marginBottom: 10 }}>
+                  <p>
+                    <strong>Team:</strong> {invite.team_name}
+                  </p>
+                  <p>
+                    <strong>Invited by:</strong> {invite.inviter_name}
+                  </p>
+                  <p>
+                    <strong>Date:</strong>{' '}
+                    {new Date(invite.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    onClick={() => handleAcceptInvite(invite.id)}
+                    className="button-primary"
+                    style={{ background: '#28a745' }}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleDeclineInvite(invite.id)}
+                    className="button-secondary"
+                    style={{ background: '#dc3545', color: 'white' }}
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
-    </div>
-  );
-};
 
-export default UserManagement; 
+      {!user?.team_id && (
+        <div
+          className="card"
+          style={{
+            marginTop: 20,
+            backgroundColor: '#fff3cd',
+            border: '1px solid #ffeaa7',
+          }}
+        >
+          <h3>Join a Team</h3>
+          <p>
+            You need to be part of a team to invite others. Ask a team member to
+            invite you, or create a new team if you're an admin.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default UserManagement

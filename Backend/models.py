@@ -1,11 +1,15 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List
+from datetime import datetime
+
 
 class Team(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     members: List["User"] = Relationship(back_populates="team")
     lists: List["TodoList"] = Relationship(back_populates="team")
+    invites: List["Invite"] = Relationship(back_populates="team")
+
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -16,6 +20,19 @@ class User(SQLModel, table=True):
     team_id: Optional[int] = Field(default=None, foreign_key="team.id")
     team: Optional[Team] = Relationship(back_populates="members")
     lists: List["TodoList"] = Relationship(back_populates="owner")
+    sent_invites: List["Invite"] = Relationship(back_populates="inviter")
+
+
+class Invite(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: str
+    team_id: int = Field(foreign_key="team.id")
+    invited_by: int = Field(foreign_key="user.id")
+    status: str = Field(default="pending")  # 'pending', 'accepted', 'declined'
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    team: Optional[Team] = Relationship(back_populates="invites")
+    inviter: Optional[User] = Relationship(back_populates="sent_invites")
+
 
 class TodoList(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -25,6 +42,7 @@ class TodoList(SQLModel, table=True):
     team: Optional[Team] = Relationship(back_populates="lists")
     owner: Optional[User] = Relationship(back_populates="lists")
     tasks: List["Task"] = Relationship(back_populates="list")
+
 
 class Task(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

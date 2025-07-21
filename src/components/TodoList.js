@@ -20,6 +20,8 @@ const TodoList = () => {
   const [editTaskId, setEditTaskId] = useState(null)
   const [editTaskTitle, setEditTaskTitle] = useState('')
   const [editTaskDescription, setEditTaskDescription] = useState('')
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
 
   useEffect(() => {
     fetchLists()
@@ -140,8 +142,42 @@ const TodoList = () => {
     }
   }
 
-  const cancelEditTask = async (taskID) => {
+  const cancelEditTask = () => {
     setEditTaskId(null)
+    setEditTaskTitle('')
+    setEditTaskDescription('')
+  }
+
+  const handleSendInvite = async () => {
+    if (!inviteEmail.trim()) {
+      alert('Please enter an email address')
+      return
+    }
+
+    const user = JSON.parse(localStorage.getItem('user'))
+    if (!user?.team_id) {
+      alert('You need to be part of a team to invite others')
+      return
+    }
+
+    try {
+      await axios.post(
+        `${API_URL}/teams/invite/`,
+        {
+          email: inviteEmail,
+          team_id: user.team_id,
+        },
+        {
+          headers: getAuthHeaders(),
+        },
+      )
+      alert('Invitation sent successfully!')
+      setInviteEmail('')
+      setShowInviteModal(false)
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error sending invitation')
+      console.error(err)
+    }
   }
 
   const handleDeleteTask = async (taskID) => {
@@ -195,6 +231,15 @@ const TodoList = () => {
         <button onClick={handleAddList} className="button-primary">
           Add List
         </button>
+        {JSON.parse(localStorage.getItem('user'))?.team_id && (
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className="button-primary"
+            style={{ marginLeft: 10, background: '#28a745' }}
+          >
+            Invite Collaborators
+          </button>
+        )}
       </div>
 
       <div
@@ -222,6 +267,39 @@ const TodoList = () => {
       </div>
 
       <div className="card">
+        {selectedList && (
+          <div className="card" style={{ marginTop: 20 }}>
+            <h3>Add New Task</h3>
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
+              <input
+                type="text"
+                placeholder="New task title"
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                className="input-field"
+                style={{ flex: 1, minWidth: '200px' }}
+              />
+              <input
+                type="text"
+                placeholder="Description (optional)"
+                value={newTaskDescription}
+                onChange={(e) => setNewTaskDescription(e.target.value)}
+                className="input-field"
+                style={{ flex: 1, minWidth: '200px' }}
+              />
+              <button onClick={handleAddTask} className="button-primary">
+                Add Task
+              </button>
+            </div>
+          </div>
+        )}
         <h2>Tasks for: {selectedList?.title || 'No list selected'}</h2>
 
         <ul style={{ listStyle: 'none', padding: 0 }}>
@@ -307,39 +385,6 @@ const TodoList = () => {
         )}
       </div>
 
-      {selectedList && (
-        <div className="card" style={{ marginTop: 20 }}>
-          <h3>Add New Task</h3>
-          <div
-            style={{
-              display: 'flex',
-              gap: 10,
-              flexWrap: 'wrap',
-              alignItems: 'center',
-            }}
-          >
-            <input
-              type="text"
-              placeholder="New task title"
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              className="input-field"
-              style={{ flex: 1, minWidth: '200px' }}
-            />
-            <input
-              type="text"
-              placeholder="Description (optional)"
-              value={newTaskDescription}
-              onChange={(e) => setNewTaskDescription(e.target.value)}
-              className="input-field"
-              style={{ flex: 1, minWidth: '200px' }}
-            />
-            <button onClick={handleAddTask} className="button-primary">
-              Add Task
-            </button>
-          </div>
-        </div>
-      )}
       {modalTaskId !== null && (
         <>
           <div className="modal-overlay" />
@@ -411,6 +456,41 @@ const TodoList = () => {
                   Save Changes
                 </button>
               </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {showInviteModal && (
+        <>
+          <div className="modal-overlay" />
+          <div className="modal-box">
+            <h3>Invite Collaborators</h3>
+            <p>Enter the email address of the person you want to invite:</p>
+            <input
+              type="email"
+              placeholder="Email address"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="input-field"
+              style={{ marginBottom: 15 }}
+            />
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                justifyContent: 'flex-end',
+              }}
+            >
+              <button
+                className="button-secondary"
+                onClick={() => setShowInviteModal(false)}
+              >
+                Cancel
+              </button>
+              <button className="button-primary" onClick={handleSendInvite}>
+                Send Invitation
+              </button>
             </div>
           </div>
         </>
